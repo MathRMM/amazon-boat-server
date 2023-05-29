@@ -1,0 +1,146 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique @db.VarChar(255)
+  hashPassword String      @db.VarChar(255)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  Session      Session[]
+  Enrollment   Enrollment?
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Enrollment {
+  id        String    @id @default(uuid())
+  name      String    @db.VarChar(255)
+  cpf       String    @db.VarChar(255)
+  birthday  DateTime
+  phone     String    @db.VarChar(255)
+  userId    String    @unique
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Ticket    Ticket[]
+}
+
+model Ticket {
+  id           String       @id @default(uuid())
+  enrollmentId String
+  Enrollment   Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  status       TicketStatus
+  tripId       String
+  Trip         Trips        @relation(fields: [tripId], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  Payment      Payment[]
+}
+
+enum TicketStatus {
+  RESERVED
+  PAID
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  ticketId       String
+  Ticket         Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  value          Int
+  cardIssuer     String
+  cardLastDigits String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Address {
+  id            String      @id @default(uuid())
+  zipCode       String      @db.VarChar(255)
+  street        String      @db.VarChar(255)
+  number        String      @db.VarChar(255)
+  neighborhood  String      @db.VarChar(255)
+  addressDetail String?     @db.VarChar(255)
+  cityId        String
+  City          City        @relation(fields: [cityId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  instituteId   String
+  lat           Decimal
+  lng           Decimal
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  enrollmentId  String?
+  Origin        Trips[]     @relation(name: "Origin")
+  Destiny       Trips[]     @relation(name: "Destiny")
+}
+
+model City {
+  id        String    @id @default(uuid())
+  name      String    @db.VarChar(255)
+  stateId   String
+  State     State     @relation(fields: [stateId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  Address   Address[]
+  zoneId    String
+  Zone      Zone      @relation(fields: [zoneId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model State {
+  id        String   @id @default(uuid())
+  name      String   @unique @db.VarChar(255)
+  City      City[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Zone {
+  id        String   @id @default(uuid())
+  ddd       Int      @unique
+  City      City[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Company {
+  id    String  @id @default(uuid())
+  name  String
+  Boats Boats[]
+}
+
+model Boats {
+  id        String  @id @default(uuid())
+  name      String
+  serial    String
+  companyId String
+  Company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  Trips     Trips[]
+}
+
+model Trips {
+  id                String   @id @default(uuid())
+  originId          String
+  destinyId         String
+  Origin            Address  @relation(fields: [originId], name: "Origin", references: [id], onDelete: Cascade, onUpdate: Cascade)
+  Destiny           Address  @relation(fields: [destinyId], name: "Destiny", references: [id], onDelete: Cascade, onUpdate: Cascade)
+  date              DateTime
+  boatId            String
+  Boats             Boats    @relation(fields: [boatId], references: [id])
+  quantityPassenger Int
+  Ticket            Ticket[]
+}
